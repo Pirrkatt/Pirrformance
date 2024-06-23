@@ -1,0 +1,9 @@
+## Interface: 100207
+## Version: 1.0.0
+## Title: Pirrformance
+## Notes: Optional Improvements and Enhancements
+## Author: Pirrkatt
+## SavedVariables: PirrformanceDB
+
+Pirrformance.lua
+Options.lua
