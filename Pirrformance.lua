@@ -16,7 +16,7 @@ local defaults = {
 local GLOBAL_STORAGE
 local CONFIG = {
 	colorLight = "ffDA70D6",
-	colorDark = "ff9147D0",
+	colorDark = "ff9C59D4",
 	colorDetail =  "ff8A6D92",
 }
 
@@ -200,7 +200,7 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	GLOBAL_STORAGE = self.db.global
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
-	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "Pirrformance")
+	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
 
 	-- Slash Commands
 	self:RegisterChatCommand("pf", "SlashCommand")
