@@ -209,10 +209,24 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 end
 
 function Pirrformance:OnEnable() -- Called when the addon is enabled
-	self:RegisterEvent("PLAYER_STARTED_MOVING")
+	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:RegisterEvent("GROUP_JOINED")
+	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 end
 
-function Pirrformance:PLAYER_STARTED_MOVING()
+function Pirrformance:PLAYER_ENTERING_WORLD(event, isLogin, isReload)
+	self:AutoMarkPlayers()
+end
+
+function Pirrformance:GROUP_JOINED(event, category, partyGUID)
+	self:AutoMarkPlayers()
+end
+
+function Pirrformance:GROUP_ROSTER_UPDATE(event)
+	self:AutoMarkPlayers()
+end
+
+function Pirrformance:AutoMarkPlayers()
 	if not self:IsAutoMarkEnabled() then
 		return
 	end
