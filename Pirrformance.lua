@@ -3,13 +3,13 @@ Pirrformance = LibStub("AceAddon-3.0"):NewAddon("Pirrformance", "AceConsole-3.0"
 local defaults = {
 	global = {
 		autoMarkList = {
-			[1] = {name = "", mark = 1},
-			[2] = {name = "", mark = 1},
-			[3] = {name = "", mark = 1},
-			[4] = {name = "", mark = 1}},
+			[1] = {name = "", mark = 0},
+			[2] = {name = "", mark = 0},
+			[3] = {name = "", mark = 0},
+			[4] = {name = "", mark = 0}},
 		autoMarkEnabled = false,
 		markSelfEnabled = false,
-		markSelfMarker = 1,
+		markSelfMarker = 0,
 	},
 }
 
@@ -21,24 +21,16 @@ local CONFIG = {
 }
 
 local markers = {
-	[1] = "1",
-	[2] = "2",
-	[3] = "3",
-	[4] = "4",
-	[5] = "5",
-	[6] = "6",
-	[7] = "7",
-	[8] = "8",
+	[0] = "", -- None
+	[1] = "1", -- Star
+	[2] = "2", -- Circle
+	[3] = "3", -- Diamond
+	[4] = "4", -- Triangle
+	[5] = "5", -- Moon
+	[6] = "6", -- Square
+	[7] = "7", -- Cross (X)
+	[8] = "8", -- Skull
 }
-
--- 1	Star
--- 2	Circle
--- 3	Diamond
--- 4	Triangle
--- 5	Moon
--- 6	Square
--- 7	Cross (X)
--- 8	Skull
 
 local options = {
 	name = "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r",
@@ -240,9 +232,6 @@ function Pirrformance:PLAYER_STARTED_MOVING()
 		for i = 1, #GLOBAL_STORAGE.autoMarkList do
 			if GLOBAL_STORAGE.autoMarkList[i].name:len() > 0 and GLOBAL_STORAGE.autoMarkList[i].name == playerName then
 				if not CanBeRaidTarget(playerName) then
-					return
-				end
-				if not GLOBAL_STORAGE.autoMarkList[i].mark then
 					return
 				end
 				if GetRaidTargetIndex(playerName) == GLOBAL_STORAGE.autoMarkList[i].mark then
