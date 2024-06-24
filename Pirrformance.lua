@@ -100,7 +100,7 @@ local options = {
 							values = markers,
 							width = 0.3,
 							get = function() return GLOBAL_STORAGE.markSelfMarker end,
-							set = function(_, newValue) GLOBAL_STORAGE.markSelfMarker = newValue end,
+							set = "AssignMarker",
 							disabled = function() return not GLOBAL_STORAGE.markSelfEnabled end,
 							order = 5,
 						},
@@ -119,7 +119,7 @@ local options = {
 							order = 7,
 							values = markers,
 							width = 0.3,
-							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[1].mark = newValue end,
+							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[1].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
@@ -138,7 +138,7 @@ local options = {
 							order = 9,
 							values = markers,
 							width = 0.3,
-							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[2].mark = newValue end,
+							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[2].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
@@ -157,7 +157,7 @@ local options = {
 							order = 11,
 							values = markers,
 							width = 0.3,
-							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[3].mark = newValue end,
+							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[3].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
@@ -176,7 +176,7 @@ local options = {
 							order = 13,
 							values = markers,
 							width = 0.3,
-							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[4].mark = newValue end,
+							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[4].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
@@ -269,6 +269,31 @@ function Pirrformance:AddPlayerToList(info, newValue)
 	end
 
 	GLOBAL_STORAGE.autoMarkList[tonumber(index)].name = newValue
+end
+
+function Pirrformance:AssignMarker(info, newValue)
+	if newValue > 0 then
+		for i = 1, #GLOBAL_STORAGE.autoMarkList do
+			if GLOBAL_STORAGE.autoMarkList[i].mark == newValue then
+				self:Print("That marker is already assigned.")
+				return
+			end
+		end
+
+		if GLOBAL_STORAGE.markSelfMarker == newValue then
+			self:Print("That marker is already assigned.")
+			return
+		end
+	end
+
+	local selfMark = info[#info] == "selfMark"
+	if selfMark then
+		GLOBAL_STORAGE.markSelfMarker = newValue
+		return
+	end
+
+	local index = string.gsub(info[#info], "mark", "")
+	GLOBAL_STORAGE.autoMarkList[tonumber(index)].mark = newValue
 end
 
 function Pirrformance:ResetDefaults()
