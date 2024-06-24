@@ -91,6 +91,7 @@ local options = {
 							name = "AutoMark Self",
 							get = function() return GLOBAL_STORAGE.markSelfEnabled end,
 							set = function(_, newValue) GLOBAL_STORAGE.markSelfEnabled = newValue end,
+							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 							width = 0.7,
 							order = 4,
 						},
@@ -98,10 +99,10 @@ local options = {
 							type = "select",
 							name = "",
 							values = MARKERS_MAP,
-							width = 0.3,
+							width = 0.35,
 							get = function() return GLOBAL_STORAGE.markSelfMarker end,
 							set = "AssignMarker",
-							disabled = function() return not GLOBAL_STORAGE.markSelfEnabled end,
+							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 							order = 5,
 						},
 						player1 = {
@@ -118,7 +119,7 @@ local options = {
 							name = "",
 							order = 7,
 							values = MARKERS_MAP,
-							width = 0.3,
+							width = 0.35,
 							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[1].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -137,7 +138,7 @@ local options = {
 							name = "",
 							order = 9,
 							values = MARKERS_MAP,
-							width = 0.3,
+							width = 0.35,
 							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[2].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -156,7 +157,7 @@ local options = {
 							name = "",
 							order = 11,
 							values = MARKERS_MAP,
-							width = 0.3,
+							width = 0.35,
 							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[3].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -175,7 +176,7 @@ local options = {
 							name = "",
 							order = 13,
 							values = MARKERS_MAP,
-							width = 0.3,
+							width = 0.35,
 							set = "AssignMarker",
 							get = function() return GLOBAL_STORAGE.autoMarkList[4].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -216,10 +217,11 @@ function Pirrformance:PLAYER_STARTED_MOVING()
 		return
 	end
 
-	if not IsInGroup() then
+	if not IsInGroup(1) then
 		return
 	end
 
+	-- Mark Self
 	if GLOBAL_STORAGE.markSelfEnabled then
 		if GLOBAL_STORAGE.markSelfMarker then
 			if CanBeRaidTarget("player") and not (GetRaidTargetIndex("player") == GLOBAL_STORAGE.markSelfMarker) then
@@ -228,6 +230,7 @@ function Pirrformance:PLAYER_STARTED_MOVING()
 		end
 	end
 
+	-- Mark PlayerList
 	for _, playerName in pairs(GetHomePartyInfo()) do
 		for i = 1, #GLOBAL_STORAGE.autoMarkList do
 			if GLOBAL_STORAGE.autoMarkList[i].name:len() > 0 and GLOBAL_STORAGE.autoMarkList[i].name == playerName then
