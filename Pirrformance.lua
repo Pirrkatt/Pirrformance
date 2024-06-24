@@ -8,6 +8,8 @@ local defaults = {
 			[3] = {name = "", mark = 1},
 			[4] = {name = "", mark = 1}},
 		autoMarkEnabled = false,
+		markSelfEnabled = false,
+		markSelfMarker = 1,
 	},
 }
 
@@ -85,19 +87,44 @@ local options = {
 							name = "Player List",
 							order = 2,
 						},
+						spaces = {
+							type = "description",
+							name = " ",
+							fontSize = "medium",
+							width = 0.8,
+							order = 3,
+						},
+						autoMarkSelf = {
+							type = "toggle",
+							name = "AutoMark Self",
+							get = function() return GLOBAL_STORAGE.markSelfEnabled end,
+							set = function(_, newValue) GLOBAL_STORAGE.markSelfEnabled = newValue end,
+							width = 0.7,
+							order = 4,
+						},
+						selfMark = {
+							type = "select",
+							name = "",
+							values = markers,
+							width = 0.3,
+							get = function() return GLOBAL_STORAGE.markSelfMarker end,
+							set = function(_, newValue) GLOBAL_STORAGE.markSelfMarker = newValue end,
+							disabled = function() return not GLOBAL_STORAGE.markSelfEnabled end,
+							order = 5,
+						},
 						player1 = {
 							type = "input",
 							name = "",
 							set = "AddPlayerToList",
 							get = function() return GLOBAL_STORAGE.autoMarkList[1].name end,
-							order = 3,
+							order = 6,
 							width = 0.9,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end;
 						},
 						mark1 = {
 							type = "select",
 							name = "",
-							order = 4,
+							order = 7,
 							values = markers,
 							width = 0.3,
 							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[1].mark = newValue end,
@@ -109,14 +136,14 @@ local options = {
 							name = "",
 							set = "AddPlayerToList",
 							get = function() return GLOBAL_STORAGE.autoMarkList[2].name end,
-							order = 5,
+							order = 8,
 							width = 0.9,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end;
 						},
 						mark2 = {
 							type = "select",
 							name = "",
-							order = 6,
+							order = 9,
 							values = markers,
 							width = 0.3,
 							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[2].mark = newValue end,
@@ -128,14 +155,14 @@ local options = {
 							name = "",
 							set = "AddPlayerToList",
 							get = function() return GLOBAL_STORAGE.autoMarkList[3].name end,
-							order = 7,
+							order = 10,
 							width = 0.9,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end;
 						},
 						mark3 = {
 							type = "select",
 							name = "",
-							order = 8,
+							order = 11,
 							values = markers,
 							width = 0.3,
 							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[3].mark = newValue end,
@@ -147,14 +174,14 @@ local options = {
 							name = "",
 							set = "AddPlayerToList",
 							get = function() return GLOBAL_STORAGE.autoMarkList[4].name end,
-							order = 9,
+							order = 12,
 							width = 0.9,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end;
 						},
 						mark4 = {
 							type = "select",
 							name = "",
-							order = 10,
+							order = 13,
 							values = markers,
 							width = 0.3,
 							set = function(_, newValue) GLOBAL_STORAGE.autoMarkList[4].mark = newValue end,
@@ -186,7 +213,7 @@ function Pirrformance:OnEnable() -- Called when the addon is enabled
 end
 
 function Pirrformance:PLAYER_STARTED_MOVING()
-	if not Pirrformance:IsAutoMarkEnabled() then
+	if not self:IsAutoMarkEnabled() then
 		return
 	end
 
@@ -194,10 +221,21 @@ function Pirrformance:PLAYER_STARTED_MOVING()
 		return
 	end
 
+	if GLOBAL_STORAGE.markSelfEnabled then
+		if GLOBAL_STORAGE.markSelfMarker then
+			if CanBeRaidTarget("player") and not (GetRaidTargetIndex("player") == GLOBAL_STORAGE.markSelfMarker) then
+				SetRaidTarget("player", GLOBAL_STORAGE.markSelfMarker)
+			end
+		end
+	end
+
 	for _, playerName in pairs(GetHomePartyInfo()) do
 		for i = 1, #GLOBAL_STORAGE.autoMarkList do
 			if GLOBAL_STORAGE.autoMarkList[i].name:len() > 0 and GLOBAL_STORAGE.autoMarkList[i].name == playerName then
 				if not CanBeRaidTarget(playerName) then
+					return
+				end
+				if not GLOBAL_STORAGE.autoMarkList[i].mark then
 					return
 				end
 				if GetRaidTargetIndex(playerName) == GLOBAL_STORAGE.autoMarkList[i].mark then
