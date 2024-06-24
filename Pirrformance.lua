@@ -190,6 +190,13 @@ local options = {
 						},
 					},
 				},
+				resetDefaults = {
+					type = "execute",
+					name = "Reset to Default",
+					func = "ResetDefaults",
+					confirm = true,
+					order = 5,
+				},
 			},
 		},
 	},
@@ -273,4 +280,8 @@ function Pirrformance:AddPlayerToList(info, newValue)
 	end
 
 	GLOBAL_STORAGE.autoMarkList[tonumber(index)].name = newValue
+end
+
+function Pirrformance:ResetDefaults()
+	GLOBAL_STORAGE = CopyTable(defaults.global)
 end
