@@ -1,3 +1,5 @@
+local addonName, addon = ...
+
 Pirrformance = LibStub("AceAddon-3.0"):NewAddon("Pirrformance", "AceConsole-3.0", "AceEvent-3.0")
 
 local defaults = {
@@ -200,7 +202,7 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	GLOBAL_STORAGE = self.db.global
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
-	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
+	self.optionsFrame, self.settingsCategoryId = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
 
 	-- Slash Commands
 	self:RegisterChatCommand("pf", "SlashCommand")
@@ -262,7 +264,7 @@ function Pirrformance:AutoMarkPlayers()
 end
 
 function Pirrformance:SlashCommand(msg)
-	InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
+	Settings.OpenToCategory(self.settingsCategoryId)
 end
 
 function Pirrformance:IsAutoMarkEnabled(info)
