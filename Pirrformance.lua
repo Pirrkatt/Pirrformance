@@ -3,19 +3,27 @@ local addonName, addon = ...
 Pirrformance = LibStub("AceAddon-3.0"):NewAddon("Pirrformance", "AceConsole-3.0", "AceEvent-3.0")
 
 local defaults = {
-	global = {
-		autoMarkList = {
-			["entry1"] = {name = "", mark = 0},
-			["entry2"] = {name = "", mark = 0},
-			["entry3"] = {name = "", mark = 0},
-			["entry4"] = {name = "", mark = 0}},
-		autoMarkEnabled = false,
-		markSelfEnabled = false,
-		markSelfMarker = 0,
+	char = {
+		autoMark = {
+			autoMarkList = {
+				["entry1"] = {name = "", mark = 0},
+				["entry2"] = {name = "", mark = 0},
+				["entry3"] = {name = "", mark = 0},
+				["entry4"] = {name = "", mark = 0}},
+			autoMarkEnabled = false,
+			markSelfEnabled = false,
+			markSelfMarker = 0,
+		},
+		sounds = {},
 	},
+	global = {},
 }
 
-local GLOBAL_STORAGE
+local STORAGE_GLOBAL
+local STORAGE_CHAR = {autoMark = {}, sounds = {}}
+
+local OPTIONS_MARK_LIST
+
 local CONFIG = {
 	colorLight = "ffDA70D6",
 	colorDark = "ff9C59D4",
@@ -91,8 +99,8 @@ local options = {
 						autoMarkSelf = {
 							type = "toggle",
 							name = "AutoMark Self",
-							get = function() return GLOBAL_STORAGE.markSelfEnabled end,
-							set = function(_, newValue) GLOBAL_STORAGE.markSelfEnabled = newValue end,
+							get = function() return STORAGE_CHAR.autoMark.markSelfEnabled end,
+							set = function(_, newValue) STORAGE_CHAR.autoMark.markSelfEnabled = newValue end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 							width = 0.7,
 							order = 4,
@@ -102,7 +110,7 @@ local options = {
 							name = "",
 							values = MARKERS_MAP,
 							width = 0.35,
-							get = function() return GLOBAL_STORAGE.markSelfMarker end,
+							get = function() return STORAGE_CHAR.autoMark.markSelfMarker end,
 							set = "AssignMarkerToList",
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 							order = 5,
@@ -111,7 +119,7 @@ local options = {
 							type = "input",
 							name = "",
 							set = "AddPlayerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry1"].name end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry1"].name end,
 							order = 6,
 							width = 0.85,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -123,14 +131,14 @@ local options = {
 							values = MARKERS_MAP,
 							width = 0.35,
 							set = "AssignMarkerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry1"].mark end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry1"].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
 						player2 = {
 							type = "input",
 							name = "",
 							set = "AddPlayerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry2"].name end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry2"].name end,
 							order = 8,
 							width = 0.85,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -142,14 +150,14 @@ local options = {
 							values = MARKERS_MAP,
 							width = 0.35,
 							set = "AssignMarkerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry2"].mark end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry2"].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
 						player3 = {
 							type = "input",
 							name = "",
 							set = "AddPlayerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry3"].name end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry3"].name end,
 							order = 10,
 							width = 0.85,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -161,14 +169,14 @@ local options = {
 							values = MARKERS_MAP,
 							width = 0.35,
 							set = "AssignMarkerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry3"].mark end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry3"].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
 						player4 = {
 							type = "input",
 							name = "",
 							set = "AddPlayerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry4"].name end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry4"].name end,
 							order = 12,
 							width = 0.85,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -180,7 +188,7 @@ local options = {
 							values = MARKERS_MAP,
 							width = 0.35,
 							set = "AssignMarkerToList",
-							get = function() return GLOBAL_STORAGE.autoMarkList["entry4"].mark end,
+							get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry4"].mark end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 						},
 					},
@@ -213,7 +221,7 @@ local options = {
 				resetDefaults = {
 					type = "execute",
 					name = "Reset to Default",
-					func = "ResetDefaults",
+					func = "ResetAutomarkDefaults",
 					confirm = true,
 					order = 8,
 				},
@@ -224,7 +232,12 @@ local options = {
 
 function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	self.db = LibStub("AceDB-3.0"):New("PirrformanceDB", defaults, true)
-	GLOBAL_STORAGE = self.db.global
+
+	STORAGE_GLOBAL = self.db.global
+
+	STORAGE_CHAR.autoMark = self.db.char.autoMark
+	STORAGE_CHAR.sounds = self.db.char.sounds
+
 	OPTIONS_MARK_LIST = options.args.tools.args.autoMarkPlayers.args
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
@@ -261,11 +274,11 @@ function Pirrformance:SlashCommand(msg)
 end
 
 function Pirrformance:IsAutoMarkEnabled(info)
-	return GLOBAL_STORAGE.autoMarkEnabled
+	return STORAGE_CHAR.autoMark.autoMarkEnabled
 end
 
 function Pirrformance:ToggleAutoMark(info, value)
-	GLOBAL_STORAGE.autoMarkEnabled = value
+	STORAGE_CHAR.autoMark.autoMarkEnabled = value
 end
 
 function Pirrformance:AutoMarkPlayers()
@@ -278,10 +291,10 @@ function Pirrformance:AutoMarkPlayers()
 	end
 
 	-- Mark Self
-	if GLOBAL_STORAGE.markSelfEnabled then
-		if GLOBAL_STORAGE.markSelfMarker then
-			if CanBeRaidTarget("player") and not (GetRaidTargetIndex("player") == GLOBAL_STORAGE.markSelfMarker) then
-				SetRaidTarget("player", GLOBAL_STORAGE.markSelfMarker)
+	if STORAGE_CHAR.autoMark.markSelfEnabled then
+		if STORAGE_CHAR.autoMark.markSelfMarker then
+			if CanBeRaidTarget("player") and not (GetRaidTargetIndex("player") == STORAGE_CHAR.autoMark.markSelfMarker) then
+				SetRaidTarget("player", STORAGE_CHAR.autoMark.markSelfMarker)
 			end
 		end
 	end
@@ -289,15 +302,15 @@ function Pirrformance:AutoMarkPlayers()
 	-- Mark PlayerList
 	for _, playerName in pairs(GetHomePartyInfo()) do
 		for i = 1, self:GetDatabaseEntriesAmount() do
-			if GLOBAL_STORAGE.autoMarkList["entry" .. i].name:len() > 0 and GLOBAL_STORAGE.autoMarkList["entry" .. i].name == playerName then
+			if STORAGE_CHAR.autoMark.autoMarkList["entry" .. i].name:len() > 0 and STORAGE_CHAR.autoMark.autoMarkList["entry" .. i].name == playerName then
 				if not CanBeRaidTarget(playerName) then
 					return
 				end
-				if GetRaidTargetIndex(playerName) == GLOBAL_STORAGE.autoMarkList["entry" .. i].mark then
+				if GetRaidTargetIndex(playerName) == STORAGE_CHAR.autoMark.autoMarkList["entry" .. i].mark then
 					return
 				end
 
-				SetRaidTarget(playerName, GLOBAL_STORAGE.autoMarkList["entry" .. i].mark)
+				SetRaidTarget(playerName, STORAGE_CHAR.autoMark.autoMarkList["entry" .. i].mark)
 			end
 		end
 	end
@@ -307,7 +320,7 @@ function Pirrformance:AddPlayerToList(info, newValue)
 	local index = string.gsub(info[#info], "player", "")
 
 	if newValue:len() > 0 then
-		for key, entry in pairs(GLOBAL_STORAGE.autoMarkList) do
+		for key, entry in pairs(STORAGE_CHAR.autoMark.autoMarkList) do
 			if type(key) == "string" and key:find("entry") then
 				if entry.name:lower() == newValue:lower() then
 					self:Print("That player is already added.")
@@ -317,12 +330,12 @@ function Pirrformance:AddPlayerToList(info, newValue)
 		end
 	end
 
-	GLOBAL_STORAGE.autoMarkList["entry" .. index].name = newValue
+	STORAGE_CHAR.autoMark.autoMarkList["entry" .. index].name = newValue
 end
 
 function Pirrformance:AssignMarkerToList(info, newValue)
 	if newValue > 0 then
-		for key, entry in pairs(GLOBAL_STORAGE.autoMarkList) do
+		for key, entry in pairs(STORAGE_CHAR.autoMark.autoMarkList) do
 			if type(key) == "string" and key:find("entry") then
 				if entry.mark == newValue then
 					self:Print("That marker is already assigned.")
@@ -331,7 +344,7 @@ function Pirrformance:AssignMarkerToList(info, newValue)
 			end
 		end
 
-		if GLOBAL_STORAGE.markSelfMarker == newValue then
+		if STORAGE_CHAR.autoMark.markSelfMarker == newValue then
 			self:Print("That marker is already assigned.")
 			return
 		end
@@ -339,12 +352,12 @@ function Pirrformance:AssignMarkerToList(info, newValue)
 
 	local selfMark = info[#info] == "selfMark"
 	if selfMark then
-		GLOBAL_STORAGE.markSelfMarker = newValue
+		STORAGE_CHAR.autoMark.markSelfMarker = newValue
 		return
 	end
 
 	local index = string.gsub(info[#info], "mark", "")
-	GLOBAL_STORAGE.autoMarkList["entry" .. index].mark = newValue
+	STORAGE_CHAR.autoMark.autoMarkList["entry" .. index].mark = newValue
 end
 
 function Pirrformance:AddEntry(entryNum, lastOrder)
@@ -352,7 +365,7 @@ function Pirrformance:AddEntry(entryNum, lastOrder)
 		type = "input",
 		name = "",
 		set = "AddPlayerToList",
-		get = function() return GLOBAL_STORAGE.autoMarkList["entry" .. entryNum].name end,
+		get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry" .. entryNum].name end,
 		order = lastOrder + 1,
 		width = 0.85,
 		disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -364,7 +377,7 @@ function Pirrformance:AddEntry(entryNum, lastOrder)
 		values = MARKERS_MAP,
 		width = 0.35,
 		set = "AssignMarkerToList",
-		get = function() return GLOBAL_STORAGE.autoMarkList["entry" .. entryNum].mark end,
+		get = function() return STORAGE_CHAR.autoMark.autoMarkList["entry" .. entryNum].mark end,
 		disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
 	}
 end
@@ -374,14 +387,14 @@ function Pirrformance:AddEmptyEntry()
 	local entryNum = dbAmount + 1
 	local lastOrder = OPTIONS_MARK_LIST["mark" .. dbAmount].order
 
-	GLOBAL_STORAGE.autoMarkList["entry" .. entryNum] = {name = "", mark = 0}
+	STORAGE_CHAR.autoMark.autoMarkList["entry" .. entryNum] = {name = "", mark = 0}
 	Pirrformance:AddEntry(entryNum, lastOrder)
 end
 
 function Pirrformance:RemoveEntry()
 	local dbAmount = self:GetDatabaseEntriesAmount()
 
-	GLOBAL_STORAGE.autoMarkList["entry" .. dbAmount] = nil
+	STORAGE_CHAR.autoMark.autoMarkList["entry" .. dbAmount] = nil
 	OPTIONS_MARK_LIST["player" .. dbAmount] = nil
 	OPTIONS_MARK_LIST["mark" .. dbAmount] = nil
 end
@@ -398,7 +411,7 @@ end
 
 function Pirrformance:GetDatabaseEntriesAmount()
 	local amountOfEntries = 0
-	for _ in pairs(GLOBAL_STORAGE.autoMarkList) do
+	for _ in pairs(STORAGE_CHAR.autoMark.autoMarkList) do
 		amountOfEntries = amountOfEntries + 1
 	end
 	return amountOfEntries
@@ -416,6 +429,11 @@ function Pirrformance:LoadExtraEntries()
 	end
 end
 
-function Pirrformance:ResetDefaults()
-	GLOBAL_STORAGE = CopyTable(defaults.global)
+function Pirrformance:ResetAutomarkDefaults()
+	while self:GetOptionsEntriesAmount() > 4 do
+		self:RemoveEntry()
+	end
+
+	STORAGE_CHAR.autoMark = CopyTable(defaults.char.autoMark)
+	self:Print("AutoMark settings have been reset!")
 end
