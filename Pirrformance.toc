@@ -1,5 +1,5 @@
 ## Interface: 110002
-## Version: 1.0.0
+## Version: 1.1.0
 ## Title: Pirrformance
 ## Notes: Optional Improvements and Enhancements
 ## Author: Pirrkatt
