@@ -14,13 +14,20 @@ local defaults = {
 			markSelfEnabled = false,
 			markSelfMarker = 0,
 		},
-		sounds = {},
 	},
-	global = {},
+	global = {
+		sounds = {
+			customSoundsEnabled = false,
+		},
+	},
 }
 
-local STORAGE_GLOBAL
-local STORAGE_CHAR = {autoMark = {}, sounds = {}}
+local STORAGE_GLOBAL = {
+	sounds = {},
+}
+local STORAGE_CHAR = {
+	autoMark = {},
+}
 
 local OPTIONS_MARK_LIST
 
@@ -227,6 +234,42 @@ local options = {
 				},
 			},
 		},
+		sounds = {
+			type = "group",
+			name = "Sounds",
+			order = 5,
+			args = {
+				CustomSounds = {
+					name = "Custom Sounds",
+					type = "group",
+					inline = true,
+					order = 1,
+					args = {
+						autoMarkToggle = {
+							type = "toggle",
+							name = "Enabled",
+							desc = "Enable Custom Sounds.",
+							get = "IsCustomSoundsEnabled",
+							set = "ToggleCustomSounds",
+							order = 1,
+						},
+						header = {
+							type = "header",
+							name = "Sound List",
+							order = 2,
+						},
+						sound1 = {
+							type = "toggle",
+							name = "BloodLust - Hagge",
+							get = function() return STORAGE_GLOBAL.sounds.BL_Hagge end,
+							set = function(_, newValue) STORAGE_GLOBAL.sounds.BL_Hagge = newValue end,
+							disabled = function() return not Pirrformance:IsCustomSoundsEnabled() end,
+							order = 3,
+						},
+					},
+				},
+			},
+		}
 	},
 }
 
@@ -252,10 +295,20 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 end
 
 function Pirrformance:OnEnable() -- Called when the addon is enabled
+	-- AutoMark
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
+
+	-- Sounds
+	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 end
+
+function Pirrformance:SlashCommand(msg)
+	Settings.OpenToCategory(self.settingsCategoryId)
+end
+
+--------------------- AUTOMARK ---------------------
 
 function Pirrformance:PLAYER_ENTERING_WORLD(event, isLogin, isReload)
 	self:AutoMarkPlayers()
@@ -267,10 +320,6 @@ end
 
 function Pirrformance:GROUP_ROSTER_UPDATE(event)
 	self:AutoMarkPlayers()
-end
-
-function Pirrformance:SlashCommand(msg)
-	Settings.OpenToCategory(self.settingsCategoryId)
 end
 
 function Pirrformance:IsAutoMarkEnabled(info)
@@ -436,4 +485,36 @@ function Pirrformance:ResetAutomarkDefaults()
 
 	STORAGE_CHAR.autoMark = CopyTable(defaults.char.autoMark)
 	self:Print("AutoMark settings have been reset!")
+end
+
+--------------------- SOUNDS ---------------------
+
+function Pirrformance:COMBAT_LOG_EVENT_UNFILTERED()
+	local haggeChars = {["Haggerid"] = true, ["Hâg"] = true}
+	local spellId_Heroism, spellId_PrimalRage = 32182, 264667
+
+	if not self:IsCustomSoundsEnabled() then
+		return
+	end
+
+	if not STORAGE_GLOBAL.sounds.BL_Hagge then
+		return
+	end
+
+	local _, subevent, _, _, sourceName, _, _, _, destName, _, _, spellId = CombatLogGetCurrentEventInfo()
+
+	if subevent == "SPELL_AURA_APPLIED" and (spellId == spellId_Heroism or spellId == spellId_PrimalRage) then
+		if haggeChars[sourceName] then
+			PlaySoundFile("Interface\\AddOns\\Pirrformance\\Sounds\\BL-Hagge.ogg", "SFX")
+			return
+		end
+	end
+end
+
+function Pirrformance:IsCustomSoundsEnabled(info)
+	return STORAGE_GLOBAL.sounds.customSoundsEnabled
+end
+
+function Pirrformance:ToggleCustomSounds(info, value)
+	STORAGE_GLOBAL.sounds.customSoundsEnabled = value
 end
