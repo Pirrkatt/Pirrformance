@@ -18,16 +18,15 @@ local defaults = {
 	global = {
 		sounds = {
 			customSoundsEnabled = false,
+			soundList = {
+				[1] = {enabled = false, volume = 1},
+			}
 		},
 	},
 }
 
-local STORAGE_GLOBAL = {
-	sounds = {},
-}
-local STORAGE_CHAR = {
-	autoMark = {},
-}
+local STORAGE_GLOBAL = CopyTable(defaults.global)
+local STORAGE_CHAR = CopyTable(defaults.char)
 
 local OPTIONS_MARK_LIST
 
@@ -47,6 +46,10 @@ local MARKERS_MAP = {
 	[6] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_6:0|t", -- Square
 	[7] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_7:0|t", -- Cross (X)
 	[8] = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:0|t", -- Skull
+}
+
+local SOUND_FILES = {
+	[1] = {file = "BL-Hagge.ogg", channel = "SFX"}
 }
 
 local options = {
@@ -239,7 +242,7 @@ local options = {
 			name = "Sounds",
 			order = 5,
 			args = {
-				CustomSounds = {
+				customSounds = {
 					name = "Custom Sounds",
 					type = "group",
 					inline = true,
@@ -261,10 +264,35 @@ local options = {
 						sound1 = {
 							type = "toggle",
 							name = "BloodLust - Hagge",
-							get = function() return STORAGE_GLOBAL.sounds.BL_Hagge end,
-							set = function(_, newValue) STORAGE_GLOBAL.sounds.BL_Hagge = newValue end,
+							get = function() return STORAGE_GLOBAL.sounds.soundList[1].enabled end,
+							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[1].enabled = newValue end,
 							disabled = function() return not Pirrformance:IsCustomSoundsEnabled() end,
 							order = 3,
+						},
+						volumeSound1 = {
+							type = "range",
+							name = "Volume",
+							min = 1,
+							max = 5,
+							step = 1,
+							width = 0.8,
+							get = function() return STORAGE_GLOBAL.sounds.soundList[1].volume end,
+							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[1].volume = newValue end,
+							order = 4,
+						},
+						spaces = {
+							type = "description",
+							name = " ",
+							fontSize = "medium",
+							width = 0.15,
+							order = 5,
+						},
+						testSound1 = {
+							type = "execute",
+							name = "Test",
+							func = "TestSound",
+							width = 0.4,
+							order = 6,
 						},
 					},
 				},
@@ -277,11 +305,10 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	self.db = LibStub("AceDB-3.0"):New("PirrformanceDB", defaults, true)
 
 	STORAGE_GLOBAL = self.db.global
-
-	STORAGE_CHAR.autoMark = self.db.char.autoMark
-	STORAGE_CHAR.sounds = self.db.char.sounds
+	STORAGE_CHAR = self.db.char
 
 	OPTIONS_MARK_LIST = options.args.tools.args.autoMarkPlayers.args
+	OPTIONS_SOUNDS_LIST = options.args.sounds.args.customSounds.args
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
 	self.optionsFrame, self.settingsCategoryId = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
@@ -489,26 +516,50 @@ end
 
 --------------------- SOUNDS ---------------------
 
-function Pirrformance:COMBAT_LOG_EVENT_UNFILTERED()
+local function PlaySound(soundFile, channel, volume)
+	local soundDir = "Interface\\AddOns\\Pirrformance\\Sounds\\"
+	local sound = soundDir .. soundFile
+
+	local soundChannel = channel or "Master"
+	local soundVolume = volume or 1
+
+	for _ = 1, soundVolume * 2 do
+		PlaySoundFile(sound, soundChannel)
+	end
+end
+
+function Pirrformance:HaggeBL()
 	local haggeChars = {["Haggerid"] = true, ["Hâg"] = true}
 	local spellId_Heroism, spellId_PrimalRage = 32182, 264667
+	local haggeBL_index = 1
 
 	if not self:IsCustomSoundsEnabled() then
 		return
 	end
 
-	if not STORAGE_GLOBAL.sounds.BL_Hagge then
+	if not STORAGE_GLOBAL.sounds.soundList[haggeBL_index] or not STORAGE_GLOBAL.sounds.soundList[haggeBL_index].enabled then
 		return
 	end
 
-	local _, subevent, _, _, sourceName, _, _, _, destName, _, _, spellId = CombatLogGetCurrentEventInfo()
+	if not SOUND_FILES[haggeBL_index] then
+		return
+	end
+
+	local _, subevent, _, _, sourceName, _, _, _, _, _, _, spellId = CombatLogGetCurrentEventInfo()
 
 	if subevent == "SPELL_AURA_APPLIED" and (spellId == spellId_Heroism or spellId == spellId_PrimalRage) then
 		if haggeChars[sourceName] then
-			PlaySoundFile("Interface\\AddOns\\Pirrformance\\Sounds\\BL-Hagge.ogg", "SFX")
-			return
+			local soundFile = SOUND_FILES[haggeBL_index].file
+			local soundChannel = SOUND_FILES[haggeBL_index].channel
+			local soundVolume = STORAGE_GLOBAL.sounds.soundList[haggeBL_index].volume
+
+			PlaySound(soundFile, soundChannel, soundVolume)
 		end
 	end
+end
+
+function Pirrformance:COMBAT_LOG_EVENT_UNFILTERED()
+	self:HaggeBL()
 end
 
 function Pirrformance:IsCustomSoundsEnabled(info)
@@ -517,4 +568,19 @@ end
 
 function Pirrformance:ToggleCustomSounds(info, value)
 	STORAGE_GLOBAL.sounds.customSoundsEnabled = value
+end
+
+function Pirrformance:TestSound(info)
+	local button = info[#info]
+	local num = tonumber(button:match("testSound(%d+)"))
+
+	if not num or not SOUND_FILES[num] then
+		return
+	end
+
+	local soundFile = SOUND_FILES[num].file
+	local soundChannel = SOUND_FILES[num].channel
+	local soundVolume = STORAGE_GLOBAL.sounds.soundList[num].volume
+
+	PlaySound(soundFile, soundChannel, soundVolume)
 end

@@ -1,10 +1,11 @@
 ## Interface: 110002
-## Version: 1.2.0
+## Version: 1.2.1
 ## Title: Pirrformance
-## Notes: Optional Improvements and Enhancements
+## Notes: Tools, Improvements and Enhancements
 ## Author: Pirrkatt
 ## SavedVariables: PirrformanceDB
 ## OptionalDeps: Ace3
+## IconTexture: Interface\AddOns\Pirrformance\icon
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
