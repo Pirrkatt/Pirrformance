@@ -693,32 +693,6 @@ end
 
 --------------------- SPELL GLOW ---------------------
 
-function Pirrformance:RUNE_POWER_UPDATE(event, runeIndex, added)
-	if self:IsSpellGlowEnabled() then
-		return
-	end
-
-	Pirrformance:UpdateSpellGlow()
-end
-
-function Pirrformance:UNIT_POWER_UPDATE(event, unitTarget, powerType)
-	if self:IsSpellGlowEnabled() and unitTarget == "player" then
-		self:UpdateSpellGlow()
-	end
-end
-
-function Pirrformance:ACTION_RANGE_CHECK_UPDATE(event, slot, isInRange, checksRange)
-	if self:IsSpellGlowEnabled() then
-		self:UpdateSpellGlow()
-	end
-end
-
-function Pirrformance:SPELL_UPDATE_COOLDOWN(event)
-	if self:IsSpellGlowEnabled() then
-		self:UpdateSpellGlow()
-	end
-end
-
 function Pirrformance:SetupGlowButtons(spellId)
 	if not GLOW_FRAMES[spellId] then
 		GLOW_FRAMES[spellId] = {}
@@ -743,20 +717,108 @@ function Pirrformance:SetupGlowButtons(spellId)
 	end
 end
 
+function Pirrformance:RUNE_POWER_UPDATE(event, runeIndex, added)
+	Pirrformance:UpdateSpellGlow()
+end
+
+function Pirrformance:UNIT_POWER_UPDATE(event, unitTarget, powerType)
+	if unitTarget == "player" then
+		self:UpdateSpellGlow()
+	end
+end
+
+function Pirrformance:ACTION_RANGE_CHECK_UPDATE(event, slot, isInRange, checksRange)
+	self:UpdateSpellGlow()
+end
+
+function Pirrformance:SPELL_UPDATE_COOLDOWN(event)
+	self:UpdateSpellGlow()
+end
+
 function Pirrformance:IsSpellGlowEnabled(info)
 	return STORAGE_CHAR.spellGlow.spellGlowEnabled
 end
 
-function Pirrformance:UpdateSpellGlow()
-	if not self:IsSpellGlowEnabled() then
-		return
+local function GetNearbyCreatures()
+    local nearbyCount = 0
+    local nameplates = C_NamePlate.GetNamePlates()
+	-- local sapId = 6770
+
+    for _, nameplate in ipairs(nameplates) do
+        local unit = nameplate.UnitFrame.unit
+		if UnitCanAttack("player", unit) then
+			-- local inRange = C_Spell.IsSpellInRange(sapId, unit) -- Might need to use this instead if CheckInteractDistance does not work in combat
+			if CheckInteractDistance(unit, 3) then -- 3 means within 10 yards
+				nearbyCount = nearbyCount + 1
+			end
+		end
+    end
+
+    return nearbyCount
+end
+
+local function CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
+	if PLAYER_CLASS ~= "DEATHKNIGHT" or not STORAGE_CHAR.spellGlow.spellList[dbIndex] then
+		return false
 	end
 
-	self:SpellGlow_Marrowrend()
-	self:SpellGlow_DeathsCaress()
-	self:SpellGlow_Tombstone()
-	self:SpellGlow_Bonestorm()
-	self:SpellGlow_SoulReaper()
+	-- Check Runes
+	local totalRunes = 0
+	for i = 1, 6 do
+		totalRunes = totalRunes + GetRuneCount(i)
+	end
+	if totalRunes < runesRequired then
+		return false
+	end
+
+	-- Check Bone Shield Charges
+	local boneShield_AuraId = 195181
+	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
+	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
+	if missingBoneShieldCharges and boneShieldCharges > missingBoneShieldCharges then
+		return false
+	end
+	if minBoneShieldCharges and boneShieldCharges < minBoneShieldCharges then
+		return false
+	end
+
+	-- Check Runic Power
+	local runicPower = UnitPower("player", Enum.PowerType.RunicPower)
+	if maxRunicPower and runicPower > maxRunicPower then
+		return false
+	end
+
+	-- Check Health Threshold
+	if healthThreshold then
+		local health = UnitHealth("target")
+		local maxHealth = UnitHealthMax("target")
+		local percentHealth = (health / maxHealth) * 100
+		if percentHealth > healthThreshold then
+			return false
+		end
+	end
+
+	-- Check Nearby Creatures
+	if minNearbyCreatures then
+		local nearbyCreatures = GetNearbyCreatures()
+		if nearbyCreatures < minNearbyCreatures then
+			return false
+		end
+	end
+
+	-- Check if in Range
+	if inRangeCheck and not C_Spell.IsSpellInRange(spellId, "target") then
+		return false
+	end
+
+	-- Check Cooldown
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(spellId)
+	local cooldown = spellCooldownInfo.duration
+	if cooldown > 2 then
+		return false
+	end
+
+	return true
 end
 
 local function startGlow(frame)
@@ -775,178 +837,34 @@ local function stopGlow(frame)
 	end
 end
 
-function Pirrformance:SpellGlow_Marrowrend()
-	if PLAYER_CLASS ~= "DEATHKNIGHT" then
-		return
-	end
-
-	if not STORAGE_CHAR.spellGlow.spellList[1] then
-		return
-	end
-
-	local totalRunes = 0
-	for i = 1, 6 do
-    	totalRunes = totalRunes + GetRuneCount(i)
-	end
-
-	local boneShield_AuraId = 195181
-	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
-	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
-	local inRange = C_Spell.IsSpellInRange(SPELL_GLOWS_IDS[1], "target")
-	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[1])
-	local cooldown = spellCooldownInfo.duration
-
-	if totalRunes >= 2 and boneShieldCharges < 6 and inRange and cooldown <= 2 then
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
+local function HandleGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
+	local shouldGlow = CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
+	for _, frame in pairs(GLOW_FRAMES[spellId]) do
+		if shouldGlow then
 			startGlow(frame)
-		end
-	else
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
+		else
 			stopGlow(frame)
 		end
 	end
 end
 
-function Pirrformance:SpellGlow_DeathsCaress()
-	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+function Pirrformance:UpdateSpellGlow()
+	if not self:IsSpellGlowEnabled() then
 		return
 	end
 
-	if not STORAGE_CHAR.spellGlow.spellList[2] then
-		return
-	end
+	-- Marrowrend
+	HandleGlow(1, SPELL_GLOWS_IDS[1], 2, 5, nil, nil, nil, nil, true)
 
-	local totalRunes = 0
-	for i = 1, 6 do
-    	totalRunes = totalRunes + GetRuneCount(i)
-	end
+	-- Death's Caress
+	HandleGlow(2, SPELL_GLOWS_IDS[2], 1, 5, nil, nil, nil, nil, true)
 
-	local boneShield_AuraId = 195181
-	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
-	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
-	local inRange = C_Spell.IsSpellInRange(SPELL_GLOWS_IDS[2], "target")
-	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[2])
-	local cooldown = spellCooldownInfo.duration
-	local marrowendGlowing = false
+	-- Tombstone
+	HandleGlow(3, SPELL_GLOWS_IDS[3], 0, nil, 6, 95, nil, nil, nil)
 
-	for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
-		if frame.isRunning then -- If Marrowrend is glowing we don't want DC to glow
-			marrowendGlowing = true
-			break
-		end
-	end
+	-- Bonestorm
+	HandleGlow(4, SPELL_GLOWS_IDS[4], 0, nil, 6, nil, nil, 2, nil)
 
-	if totalRunes >= 1 and boneShieldCharges < 6 and inRange and not marrowendGlowing and cooldown <= 2 then
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[2]]) do
-			startGlow(frame)
-		end
-	else
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[2]]) do
-			stopGlow(frame)
-		end
-	end
-end
-
-function Pirrformance:SpellGlow_Tombstone()
-	if PLAYER_CLASS ~= "DEATHKNIGHT" then
-		return
-	end
-
-	if not STORAGE_CHAR.spellGlow.spellList[3] then
-		return
-	end
-
-	local runicPower = UnitPower("player", Enum.PowerType.RunicPower)
-	local boneShield_AuraId = 195181
-	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
-	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
-	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[3])
-	local cooldown = spellCooldownInfo.duration
-
-	if runicPower <= 95 and boneShieldCharges >= 6 and cooldown <= 2 then
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[3]]) do
-			startGlow(frame)
-		end
-	else
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[3]]) do
-			stopGlow(frame)
-		end
-	end
-end
-
-local function GetNearbyCreatures()
-    local nearbyCount = 0
-    local nameplates = C_NamePlate.GetNamePlates()
-	local sapId = 6770
-
-    for _, nameplate in ipairs(nameplates) do
-        local unit = nameplate.UnitFrame.unit
-		if UnitCanAttack("player", unit) then
-			local inRange = C_Spell.IsSpellInRange(sapId, unit) -- Might need to use this instead if CheckInteractDistance does not work in combat
-			if CheckInteractDistance(unit, 3) then -- 3 means within 10 yards
-				nearbyCount = nearbyCount + 1
-			end
-		end
-    end
-
-    return nearbyCount
-end
-
-function Pirrformance:SpellGlow_Bonestorm()
-	if PLAYER_CLASS ~= "DEATHKNIGHT" then
-		return
-	end
-
-	if not STORAGE_CHAR.spellGlow.spellList[4] then
-		return
-	end
-
-	local boneShield_AuraId = 195181
-	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
-	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
-	local nearbyCreatures = GetNearbyCreatures()
-	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[4])
-	local cooldown = spellCooldownInfo.duration
-
-	if boneShieldCharges >= 6 and nearbyCreatures >= 2 and cooldown <= 2 then
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[4]]) do
-			startGlow(frame)
-		end
-	else
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[4]]) do
-			stopGlow(frame)
-		end
-	end
-end
-
-function Pirrformance:SpellGlow_SoulReaper()
-	if PLAYER_CLASS ~= "DEATHKNIGHT" then
-		return
-	end
-
-	if not STORAGE_CHAR.spellGlow.spellList[5] then
-		return
-	end
-
-	local totalRunes = 0
-	for i = 1, 6 do
-    	totalRunes = totalRunes + GetRuneCount(i)
-	end
-
-	local health = UnitHealth("target")
-	local maxHealth = UnitHealthMax("target")
-	local percentHealth = (health / maxHealth) * 100
-
-	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[5])
-	local cooldown = spellCooldownInfo.duration
-
-	if totalRunes >= 1 and percentHealth <= 40 and cooldown <= 2 then
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[5]]) do
-			startGlow(frame)
-		end
-	else
-		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[5]]) do
-			stopGlow(frame)
-		end
-	end
+	-- Soul Reaper
+	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 40, nil, nil)
 end
