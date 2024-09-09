@@ -14,6 +14,12 @@ local defaults = {
 			markSelfEnabled = false,
 			markSelfMarker = 0,
 		},
+		spellGlow = {
+			spellGlowEnabled = false,
+			spellList = {
+				[1] = false,
+			}
+		}
 	},
 	global = {
 		sounds = {
@@ -52,6 +58,17 @@ local SOUND_FILES = {
 	[1] = {file = "BL-Hagge.ogg", channel = "SFX"}
 }
 
+local GLOW_FRAMES = {}
+local SPELL_GLOWS_IDS = {
+	[1] = 195182, -- Marrowrend
+	[2] = 195292, -- Death's Caress
+	[3] = 219809, -- Tombstone
+	[4] = 194844, -- Bonestorm
+	[5] = 343294, -- Soul Reaper
+}
+
+local PLAYER_CLASS
+
 local options = {
 	name = "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r",
 	handler = Pirrformance,
@@ -77,7 +94,7 @@ local options = {
 		},
 		tools = {
 			type = "group",
-			name = "Tools",
+			name = "AutoMark",
 			order = 4,
 			args = {
 				autoMarkPlayers = {
@@ -109,6 +126,7 @@ local options = {
 						autoMarkSelf = {
 							type = "toggle",
 							name = "AutoMark Self",
+							descStyle = "none",
 							get = function() return STORAGE_CHAR.autoMark.markSelfEnabled end,
 							set = function(_, newValue) STORAGE_CHAR.autoMark.markSelfEnabled = newValue end,
 							disabled = function() return not Pirrformance:IsAutoMarkEnabled() end,
@@ -264,6 +282,7 @@ local options = {
 						sound1 = {
 							type = "toggle",
 							name = "BloodLust - Hagge",
+							descStyle = "none",
 							get = function() return STORAGE_GLOBAL.sounds.soundList[1].enabled end,
 							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[1].enabled = newValue end,
 							disabled = function() return not Pirrformance:IsCustomSoundsEnabled() end,
@@ -297,7 +316,80 @@ local options = {
 					},
 				},
 			},
-		}
+		},
+		spellGlowCategory = {
+			type = "group",
+			name = "Spell Glow",
+			order = 5,
+			args = {
+				spellGlow = {
+					name = "Spell Button Glow",
+					type = "group",
+					inline = true,
+					order = 1,
+					args = {
+						spellGlowToggle = {
+							type = "toggle",
+							name = "Enabled",
+							desc = "Enable Spell Glow.",
+							get = "IsSpellGlowEnabled",
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellGlowEnabled = newValue end,
+							order = 1,
+						},
+						header = {
+							type = "header",
+							name = "Spell List",
+							order = 2,
+						},
+						spell1 = {
+							type = "toggle",
+							name = "|TInterface\\Icons\\Ability_DeathKnight_Marrowrend:24|t Marrowrend",
+							desc = "Helps with upkeeping at least 6 Bone Shield charges.",
+							get = function() return STORAGE_CHAR.spellGlow.spellList[1] end,
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[1] = newValue end,
+							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
+							order = 3,
+						},
+						spell2 = {
+							type = "toggle",
+							name = "|TInterface\\Icons\\Ability_DeathKnight_DeathsCaress:24|t Death's Caress",
+							desc = "Helps with upkeeping at least 6 Bone Shield charges.",
+							get = function() return STORAGE_CHAR.spellGlow.spellList[2] end,
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[2] = newValue end,
+							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
+							order = 4,
+						},
+						spell3 = {
+							type = "toggle",
+							name = "|TInterface/Icons/Ability_FiegnDead:24|t Tombstone",
+							desc = "Triggers when Runic Power is 95 or below and at least 6 Bone Shield charges.",
+							get = function() return STORAGE_CHAR.spellGlow.spellList[3] end,
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[3] = newValue end,
+							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
+							order = 5,
+						},
+						spell4 = {
+							type = "toggle",
+							name = "|TInterface/Icons/Achievement_Boss_LordMarrowgar:24|t Bonestorm",
+							desc = "Triggers when at least 6 Bone Shield charges and more than 2 enemies in range.",
+							get = function() return STORAGE_CHAR.spellGlow.spellList[4] end,
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[4] = newValue end,
+							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
+							order = 6,
+						},
+						spell5 = {
+							type = "toggle",
+							name = "|TInterface/Icons/Ability_DeathKnight_SoulReaper:24|t Soul Reaper",
+							desc = "Triggers when at least 1 rune and target has less than 40% health.",
+							get = function() return STORAGE_CHAR.spellGlow.spellList[5] end,
+							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[5] = newValue end,
+							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
+							order = 7,
+						},
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -308,7 +400,6 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	STORAGE_CHAR = self.db.char
 
 	OPTIONS_MARK_LIST = options.args.tools.args.autoMarkPlayers.args
-	OPTIONS_SOUNDS_LIST = options.args.sounds.args.customSounds.args
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
 	self.optionsFrame, self.settingsCategoryId = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
@@ -319,6 +410,12 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	self:RegisterChatCommand("pirrformance", "SlashCommand")
 
 	self:LoadExtraEntries()
+
+	for _, spellId in pairs(SPELL_GLOWS_IDS) do
+		self:SetupGlowButtons(spellId)
+	end
+
+	_, PLAYER_CLASS = UnitClass("player")
 end
 
 function Pirrformance:OnEnable() -- Called when the addon is enabled
@@ -327,8 +424,16 @@ function Pirrformance:OnEnable() -- Called when the addon is enabled
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 
-	-- Sounds
+	-- Sounds/Spell Glow
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
+	-- Spell Glow
+	if PLAYER_CLASS == "DEATHKNIGHT" then -- Only works for DKs at the moment
+		self:RegisterEvent("RUNE_POWER_UPDATE")
+		self:RegisterEvent("UNIT_POWER_UPDATE")
+	end
+	self:RegisterEvent("ACTION_RANGE_CHECK_UPDATE")
+	self:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 end
 
 function Pirrformance:SlashCommand(msg)
@@ -560,6 +665,7 @@ end
 
 function Pirrformance:COMBAT_LOG_EVENT_UNFILTERED()
 	self:HaggeBL()
+	self:UpdateSpellGlow()
 end
 
 function Pirrformance:IsCustomSoundsEnabled(info)
@@ -583,4 +689,264 @@ function Pirrformance:TestSound(info)
 	local soundVolume = STORAGE_GLOBAL.sounds.soundList[num].volume
 
 	PlaySound(soundFile, soundChannel, soundVolume)
+end
+
+--------------------- SPELL GLOW ---------------------
+
+function Pirrformance:RUNE_POWER_UPDATE(event, runeIndex, added)
+	if self:IsSpellGlowEnabled() then
+		return
+	end
+
+	Pirrformance:UpdateSpellGlow()
+end
+
+function Pirrformance:UNIT_POWER_UPDATE(event, unitTarget, powerType)
+	if self:IsSpellGlowEnabled() and unitTarget == "player" then
+		self:UpdateSpellGlow()
+	end
+end
+
+function Pirrformance:ACTION_RANGE_CHECK_UPDATE(event, slot, isInRange, checksRange)
+	if self:IsSpellGlowEnabled() then
+		self:UpdateSpellGlow()
+	end
+end
+
+function Pirrformance:SPELL_UPDATE_COOLDOWN(event)
+	if self:IsSpellGlowEnabled() then
+		self:UpdateSpellGlow()
+	end
+end
+
+function Pirrformance:SetupGlowButtons(spellId)
+	if not GLOW_FRAMES[spellId] then
+		GLOW_FRAMES[spellId] = {}
+	end
+
+	local glowFrame = CreateFrame("Frame")
+	local buttonsForGlow = C_ActionBar.FindSpellActionButtons(spellId)
+	if buttonsForGlow then
+		for _, v in pairs(buttonsForGlow) do
+			local button = _G["ActionButton" .. v]
+			if not button then
+				return
+			end
+
+			glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
+			local frameWidth, frameHeight = button:GetSize();
+			glowFrame.SpellActivationAlert:SetSize(frameWidth, frameHeight);
+			glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
+			glowFrame.SpellActivationAlert:Hide();
+			table.insert(GLOW_FRAMES[spellId], glowFrame)
+		end
+	end
+end
+
+function Pirrformance:IsSpellGlowEnabled(info)
+	return STORAGE_CHAR.spellGlow.spellGlowEnabled
+end
+
+function Pirrformance:UpdateSpellGlow()
+	if not self:IsSpellGlowEnabled() then
+		return
+	end
+
+	self:SpellGlow_Marrowrend()
+	self:SpellGlow_DeathsCaress()
+	self:SpellGlow_Tombstone()
+	self:SpellGlow_Bonestorm()
+	self:SpellGlow_SoulReaper()
+end
+
+local function startGlow(frame)
+	if frame and not frame.isRunning then
+        frame.SpellActivationAlert:Show()
+        frame.SpellActivationAlert.ProcStartAnim:Play()
+        frame.isRunning = true
+	end
+end
+
+local function stopGlow(frame)
+	if frame and frame.isRunning then
+    	frame.isRunning = false
+        frame.SpellActivationAlert.ProcStartAnim:Stop()
+        frame.SpellActivationAlert:Hide()
+	end
+end
+
+function Pirrformance:SpellGlow_Marrowrend()
+	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+		return
+	end
+
+	if not STORAGE_CHAR.spellGlow.spellList[1] then
+		return
+	end
+
+	local totalRunes = 0
+	for i = 1, 6 do
+    	totalRunes = totalRunes + GetRuneCount(i)
+	end
+
+	local boneShield_AuraId = 195181
+	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
+	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
+	local inRange = C_Spell.IsSpellInRange(SPELL_GLOWS_IDS[1], "target")
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[1])
+	local cooldown = spellCooldownInfo.duration
+
+	if totalRunes >= 2 and boneShieldCharges < 6 and inRange and cooldown <= 2 then
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
+			startGlow(frame)
+		end
+	else
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
+			stopGlow(frame)
+		end
+	end
+end
+
+function Pirrformance:SpellGlow_DeathsCaress()
+	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+		return
+	end
+
+	if not STORAGE_CHAR.spellGlow.spellList[2] then
+		return
+	end
+
+	local totalRunes = 0
+	for i = 1, 6 do
+    	totalRunes = totalRunes + GetRuneCount(i)
+	end
+
+	local boneShield_AuraId = 195181
+	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
+	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
+	local inRange = C_Spell.IsSpellInRange(SPELL_GLOWS_IDS[2], "target")
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[2])
+	local cooldown = spellCooldownInfo.duration
+	local marrowendGlowing = false
+
+	for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[1]]) do
+		if frame.isRunning then -- If Marrowrend is glowing we don't want DC to glow
+			marrowendGlowing = true
+			break
+		end
+	end
+
+	if totalRunes >= 1 and boneShieldCharges < 6 and inRange and not marrowendGlowing and cooldown <= 2 then
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[2]]) do
+			startGlow(frame)
+		end
+	else
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[2]]) do
+			stopGlow(frame)
+		end
+	end
+end
+
+function Pirrformance:SpellGlow_Tombstone()
+	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+		return
+	end
+
+	if not STORAGE_CHAR.spellGlow.spellList[3] then
+		return
+	end
+
+	local runicPower = UnitPower("player", Enum.PowerType.RunicPower)
+	local boneShield_AuraId = 195181
+	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
+	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[3])
+	local cooldown = spellCooldownInfo.duration
+
+	if runicPower <= 95 and boneShieldCharges >= 6 and cooldown <= 2 then
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[3]]) do
+			startGlow(frame)
+		end
+	else
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[3]]) do
+			stopGlow(frame)
+		end
+	end
+end
+
+local function GetNearbyCreatures()
+    local nearbyCount = 0
+    local nameplates = C_NamePlate.GetNamePlates()
+	local sapId = 6770
+
+    for _, nameplate in ipairs(nameplates) do
+        local unit = nameplate.UnitFrame.unit
+		if UnitCanAttack("player", unit) then
+			local inRange = C_Spell.IsSpellInRange(sapId, unit) -- Might need to use this instead if CheckInteractDistance does not work in combat
+			if CheckInteractDistance(unit, 3) then -- 3 means within 10 yards
+				nearbyCount = nearbyCount + 1
+			end
+		end
+    end
+
+    return nearbyCount
+end
+
+function Pirrformance:SpellGlow_Bonestorm()
+	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+		return
+	end
+
+	if not STORAGE_CHAR.spellGlow.spellList[4] then
+		return
+	end
+
+	local boneShield_AuraId = 195181
+	local chargeInfo = C_UnitAuras.GetPlayerAuraBySpellID(boneShield_AuraId)
+	local boneShieldCharges = (chargeInfo and chargeInfo.applications) or 0
+	local nearbyCreatures = GetNearbyCreatures()
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[4])
+	local cooldown = spellCooldownInfo.duration
+
+	if boneShieldCharges >= 6 and nearbyCreatures >= 2 and cooldown <= 2 then
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[4]]) do
+			startGlow(frame)
+		end
+	else
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[4]]) do
+			stopGlow(frame)
+		end
+	end
+end
+
+function Pirrformance:SpellGlow_SoulReaper()
+	if PLAYER_CLASS ~= "DEATHKNIGHT" then
+		return
+	end
+
+	if not STORAGE_CHAR.spellGlow.spellList[5] then
+		return
+	end
+
+	local totalRunes = 0
+	for i = 1, 6 do
+    	totalRunes = totalRunes + GetRuneCount(i)
+	end
+
+	local health = UnitHealth("target")
+	local maxHealth = UnitHealthMax("target")
+	local percentHealth = (health / maxHealth) * 100
+
+	local spellCooldownInfo = C_Spell.GetSpellCooldown(SPELL_GLOWS_IDS[5])
+	local cooldown = spellCooldownInfo.duration
+
+	if totalRunes >= 1 and percentHealth <= 40 and cooldown <= 2 then
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[5]]) do
+			startGlow(frame)
+		end
+	else
+		for _, frame in pairs(GLOW_FRAMES[SPELL_GLOWS_IDS[5]]) do
+			stopGlow(frame)
+		end
+	end
 end
