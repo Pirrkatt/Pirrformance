@@ -709,7 +709,7 @@ function Pirrformance:SetupGlowButtons(spellId)
 
 			glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
 			local frameWidth, frameHeight = button:GetSize();
-			glowFrame.SpellActivationAlert:SetSize(frameWidth, frameHeight);
+			glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
 			glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
 			glowFrame.SpellActivationAlert:Hide();
 			table.insert(GLOW_FRAMES[spellId], glowFrame)
