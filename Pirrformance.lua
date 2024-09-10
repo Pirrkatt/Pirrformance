@@ -438,7 +438,6 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	_, PLAYER_CLASS = UnitClass("player")
 
 	self:LoadExtraEntries()
-	self:SetupGlowButtons()
 	self:HookAutoDelete()
 end
 
@@ -452,7 +451,9 @@ function Pirrformance:OnEnable() -- Called when the addon is enabled
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
 	-- Spell Glow
-	self:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
+	self:SetupGlowButtons()
+
+	self:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
 	if PLAYER_CLASS == "DEATHKNIGHT" then -- Only works for DKs at the moment
 		self:RegisterEvent("RUNE_POWER_UPDATE")
 		self:RegisterEvent("UNIT_POWER_UPDATE")
@@ -718,6 +719,41 @@ end
 
 --------------------- SPELL GLOW ---------------------
 
+local function scanDefaultBars(spellId)
+	local frames = {}
+
+	local spellActionButtons = C_ActionBar.FindSpellActionButtons(spellId)
+	if spellActionButtons then
+		for _, slot in pairs(spellActionButtons) do
+			local button = _G["ActionButton" .. slot]
+			if button then
+				table.insert(frames, button)
+			end
+		end
+	end
+	return frames
+end
+
+local function scanElvUIBars(spellId)
+	local frames = {}
+
+	for bar = 1, 15 do
+		for slotNum = 1, 12 do
+			local button = _G["ElvUI_Bar" .. bar .. "Button" .. slotNum]
+			if button then
+				local slot = button._state_action;
+				if slot and HasAction(slot) then
+					local actionType, id = GetActionInfo(slot)
+					if actionType == "spell" and spellId == id then
+						table.insert(frames, button)
+					end
+				end
+			end
+		end
+	end
+	return frames
+end
+
 function Pirrformance:SetupGlowButtons()
 	GLOW_FRAMES = {}
 
@@ -728,27 +764,28 @@ function Pirrformance:SetupGlowButtons()
 			end
 
 			local glowFrame = CreateFrame("Frame")
-			local buttonsForGlow = C_ActionBar.FindSpellActionButtons(spellId)
-			if buttonsForGlow then
-				for _, v in pairs(buttonsForGlow) do
-					local button = _G["ActionButton" .. v]
-					if not button then
-						return
-					end
 
+			local buttons = {}
+			if ElvUI then
+				buttons = scanElvUIBars(spellId)
+			else
+				buttons = scanDefaultBars(spellId)
+			end
+
+			for _, button in pairs(buttons) do
 					glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
 					local frameWidth, frameHeight = button:GetSize();
 					glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
 					glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
 					glowFrame.SpellActivationAlert:Hide();
 					table.insert(GLOW_FRAMES[spellId], glowFrame)
-				end
 			end
 		end
 	end
 end
 
-function Pirrformance:ACTIONBAR_SLOT_CHANGED(event, slot)
+function Pirrformance:ACTIVE_PLAYER_SPECIALIZATION_CHANGED(event)
+	self:StopAllGlowButtons()
 	self:SetupGlowButtons()
 end
 
@@ -872,6 +909,14 @@ local function stopGlow(frame)
     	frame.isRunning = false
         frame.SpellActivationAlert.ProcStartAnim:Stop()
         frame.SpellActivationAlert:Hide()
+	end
+end
+
+function Pirrformance:StopAllGlow()
+	for _, spellId in pairs(SPELL_GLOWS_IDS) do
+		for _, frame in pairs(GLOW_FRAMES[spellId]) do
+			stopGlow(frame)
+		end
 	end
 end
 
