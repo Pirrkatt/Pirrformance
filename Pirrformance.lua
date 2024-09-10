@@ -30,6 +30,7 @@ local defaults = {
 		},
 		tools = {
 			autoDelete = false,
+			rangeIndicator = false,
 		}
 	},
 }
@@ -71,6 +72,21 @@ local SPELL_GLOWS_IDS = {
 }
 
 local PLAYER_CLASS
+
+local itemRanges = {
+	[5] = 16114, -- Foremans Blackjack (TBC)
+	[10] = 8149, -- Voodoo Charm
+	[15] = 33069, -- Sturdy Rope
+	[20] = 10645, -- Gnomish Death Ray
+	[25] = 13289,--Egan's Blaster
+	[30] = 835, -- Large Rope Net
+	[35] = 24269, -- Heavy Netherweave Net
+	[40] = 28767, -- The Decapitator
+	[45] = 32698,-- Wrangling Rope
+	[60] = 32825, -- Soul Cannon
+	[80] = 35278,-- Reinforced Net (WotLK)
+	[100] = 41058, -- Hyldnir Harpoon (WotLK)
+}
 
 local options = {
 	name = "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r",
@@ -412,6 +428,14 @@ local options = {
 							set = function(_, newValue) STORAGE_GLOBAL.tools.autoDelete = newValue end,
 							order = 1,
 						},
+						rangeIndicator = {
+							type = "toggle",
+							name = "Range Indicator",
+							desc = "Shows approximate range to target in yards.",
+							get = function() return STORAGE_GLOBAL.tools.rangeIndicator end,
+							set = "ToggleRangeIndicator",
+							order = 2,
+						},
 					},
 				},
 			},
@@ -439,6 +463,7 @@ function Pirrformance:OnInitialize() -- Called when the addon is first loaded (S
 
 	self:LoadExtraEntries()
 	self:HookAutoDelete()
+	self:SetupRangeFrame()
 end
 
 function Pirrformance:OnEnable() -- Called when the addon is enabled (All addons loaded & player entering world)
@@ -1012,4 +1037,96 @@ function Pirrformance:HookAutoDelete()
 
 		s.editBox:SetText(DELETE_ITEM_CONFIRM_STRING)
 	end)
+end
+
+-- Range Check
+local rangeFrame = CreateFrame("Frame", "RangeFrame", UIParent, "BackdropTemplate")
+
+function Pirrformance:SetupRangeFrame()
+	if STORAGE_GLOBAL.tools.rangeIndicator then
+		rangeFrame:Show()
+	else
+		rangeFrame:Hide()
+	end
+
+	rangeFrame:SetSize(180, 36)
+	rangeFrame:SetPoint("CENTER", UIParent, "CENTER") -- Position at the center of the screen
+
+	local backdropInfo = {
+		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", -- Background texture
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", -- Border texture
+		tile = true,
+		tileSize = 8,
+		edgeSize = 8,
+		insets = { left = 1, right = 1, top = 1, bottom = 1 },
+	}
+	rangeFrame:SetBackdrop(backdropInfo)
+	rangeFrame:SetBackdropColor(0, 0, 0, 1)
+	rangeFrame:SetBackdropBorderColor(1, 1, 1, 1)
+
+	-- Create a FontString for the text
+	rangeFrame.text = rangeFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+	rangeFrame.text:SetPoint("CENTER", rangeFrame, "CENTER")
+	rangeFrame.text:SetText("Range: <No Target>")
+	rangeFrame.text:SetTextColor(1, 1, 1, 1)
+
+	rangeFrame:SetMovable(true)
+	rangeFrame:EnableMouse(true)
+
+	-- Make the frame draggable
+	rangeFrame:RegisterForDrag("LeftButton")
+	rangeFrame:SetScript("OnDragStart", rangeFrame.StartMoving)
+	rangeFrame:SetScript("OnDragStop", rangeFrame.StopMovingOrSizing)
+
+	local timeElapsed = 0
+	rangeFrame:HookScript("OnUpdate", function(self, elapsed)
+		if not STORAGE_GLOBAL.tools.rangeIndicator then
+			return
+		end
+
+		timeElapsed = timeElapsed + elapsed
+		if timeElapsed > 0.2 then -- 0.2 seconds
+			timeElapsed = 0
+
+			local range = Pirrformance:GetRangeToTarget()
+			self.text:SetText("Range: " .. range)
+			-- self:SetSize(rangeFrame.text:GetStringWidth() + 20, rangeFrame.text:GetStringHeight() + 20)
+		end
+	end)
+end
+
+function Pirrformance:GetRangeToTarget()
+	if UnitIsUnit("target", "player") or not UnitExists("target") then
+		return "<No Target>"
+	end
+
+	local shortestRange = math.huge
+	for range, itemId in pairs(itemRanges) do
+		if C_Item.IsItemInRange(itemId, "target") then
+			if range < shortestRange then
+				shortestRange = range
+			end
+		end
+	end
+
+	if shortestRange <= 5 then
+		return "Melee"
+	end
+
+	return (shortestRange < math.huge) and tostring(shortestRange) or "<Out of Range>"
+end
+
+function Pirrformance:ToggleRangeIndicator(info, value)
+	if not rangeFrame then
+        self:Print("Error: rangeFrame is not initialized.")
+        return
+    end
+
+	STORAGE_GLOBAL.tools.rangeIndicator = value
+
+	if value then
+		rangeFrame:Show()
+	else
+		rangeFrame:Hide()
+	end
 end
