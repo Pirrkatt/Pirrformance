@@ -419,7 +419,7 @@ local options = {
 	},
 }
 
-function Pirrformance:OnInitialize() -- Called when the addon is loaded
+function Pirrformance:OnInitialize() -- Called when the addon is first loaded (Some addons & systems may not be fully available yet)
 	self.db = LibStub("AceDB-3.0"):New("PirrformanceDB", defaults, true)
 
 	STORAGE_GLOBAL = self.db.global
@@ -441,7 +441,7 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	self:HookAutoDelete()
 end
 
-function Pirrformance:OnEnable() -- Called when the addon is enabled
+function Pirrformance:OnEnable() -- Called when the addon is enabled (All addons loaded & player entering world)
 	-- AutoMark
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterEvent("GROUP_JOINED")
@@ -735,8 +735,8 @@ local function scanDefaultBars()
 							buttonMap[spellId] = {}
 						end
 						table.insert(buttonMap[spellId], button)
-		end
-	end
+					end
+				end
 			end
 		end
 	end
@@ -758,10 +758,10 @@ local function scanElvUIBars()
 							buttonMap[spellId] = {}
 						end
 						table.insert(buttonMap[spellId], button)
+					end
 				end
 			end
 		end
-	end
 	end
 	return buttonMap
 end
@@ -787,12 +787,12 @@ function Pirrformance:SetupGlowButtons()
 			local buttons = buttonMap[spellId] or {}
 
 			for _, button in pairs(buttons) do
-					glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
-					local frameWidth, frameHeight = button:GetSize();
-					glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
-					glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
-					glowFrame.SpellActivationAlert:Hide();
-					table.insert(GLOW_FRAMES[spellId], glowFrame)
+				glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
+				local frameWidth, frameHeight = button:GetSize();
+				glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
+				glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
+				glowFrame.SpellActivationAlert:Hide();
+				table.insert(GLOW_FRAMES[spellId], glowFrame)
 			end
 		end
 	end
@@ -903,7 +903,7 @@ local function CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShield
 	-- Check Cooldown
 	local spellCooldownInfo = C_Spell.GetSpellCooldown(spellId)
 	local cooldown = spellCooldownInfo.duration
-	if cooldown > 2 then
+	if cooldown > 5 then
 		return false
 	end
 
