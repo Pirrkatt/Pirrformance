@@ -92,7 +92,7 @@ local options = {
 			fontSize = "large",
 			order = 3,
 		},
-		tools = {
+		autoMark = {
 			type = "group",
 			name = "AutoMark",
 			order = 4,
@@ -320,7 +320,7 @@ local options = {
 		spellGlowCategory = {
 			type = "group",
 			name = "Spell Glow",
-			order = 5,
+			order = 6,
 			args = {
 				spellGlow = {
 					name = "Spell Button Glow",
@@ -399,7 +399,7 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	STORAGE_GLOBAL = self.db.global
 	STORAGE_CHAR = self.db.char
 
-	OPTIONS_MARK_LIST = options.args.tools.args.autoMarkPlayers.args
+	OPTIONS_MARK_LIST = options.args.autoMark.args.autoMarkPlayers.args
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Pirrformance", options)
 	self.optionsFrame, self.settingsCategoryId = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Pirrformance", "|c" .. CONFIG.colorDark .. "Pirr|c" .. CONFIG.colorLight .. "formance|r")
