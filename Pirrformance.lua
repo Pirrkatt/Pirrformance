@@ -435,14 +435,10 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	self:RegisterChatCommand("pirr", "SlashCommand")
 	self:RegisterChatCommand("pirrformance", "SlashCommand")
 
-	self:LoadExtraEntries()
-
-	for _, spellId in pairs(SPELL_GLOWS_IDS) do
-		self:SetupGlowButtons(spellId)
-	end
-
 	_, PLAYER_CLASS = UnitClass("player")
 
+	self:LoadExtraEntries()
+	self:SetupGlowButtons()
 	self:HookAutoDelete()
 end
 
@@ -456,6 +452,7 @@ function Pirrformance:OnEnable() -- Called when the addon is enabled
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
 	-- Spell Glow
+	self:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 	if PLAYER_CLASS == "DEATHKNIGHT" then -- Only works for DKs at the moment
 		self:RegisterEvent("RUNE_POWER_UPDATE")
 		self:RegisterEvent("UNIT_POWER_UPDATE")
@@ -721,32 +718,42 @@ end
 
 --------------------- SPELL GLOW ---------------------
 
-function Pirrformance:SetupGlowButtons(spellId)
-	if not GLOW_FRAMES[spellId] then
-		GLOW_FRAMES[spellId] = {}
-	end
+function Pirrformance:SetupGlowButtons()
+	GLOW_FRAMES = {}
 
-	local glowFrame = CreateFrame("Frame")
-	local buttonsForGlow = C_ActionBar.FindSpellActionButtons(spellId)
-	if buttonsForGlow then
-		for _, v in pairs(buttonsForGlow) do
-			local button = _G["ActionButton" .. v]
-			if not button then
-				return
+	for _, spellId in pairs(SPELL_GLOWS_IDS) do
+		if IsSpellKnown(spellId) then
+			if not GLOW_FRAMES[spellId] then
+				GLOW_FRAMES[spellId] = {}
 			end
 
-			glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
-			local frameWidth, frameHeight = button:GetSize();
-			glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
-			glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
-			glowFrame.SpellActivationAlert:Hide();
-			table.insert(GLOW_FRAMES[spellId], glowFrame)
+			local glowFrame = CreateFrame("Frame")
+			local buttonsForGlow = C_ActionBar.FindSpellActionButtons(spellId)
+			if buttonsForGlow then
+				for _, v in pairs(buttonsForGlow) do
+					local button = _G["ActionButton" .. v]
+					if not button then
+						return
+					end
+
+					glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
+					local frameWidth, frameHeight = button:GetSize();
+					glowFrame.SpellActivationAlert:SetSize(frameWidth + 10, frameHeight + 10);
+					glowFrame.SpellActivationAlert:SetPoint("CENTER", button, "CENTER", 0, 0);
+					glowFrame.SpellActivationAlert:Hide();
+					table.insert(GLOW_FRAMES[spellId], glowFrame)
+				end
+			end
 		end
 	end
 end
 
+function Pirrformance:ACTIONBAR_SLOT_CHANGED(event, slot)
+	self:SetupGlowButtons()
+end
+
 function Pirrformance:RUNE_POWER_UPDATE(event, runeIndex, added)
-	Pirrformance:UpdateSpellGlow()
+	self:UpdateSpellGlow()
 end
 
 function Pirrformance:UNIT_POWER_UPDATE(event, unitTarget, powerType)
@@ -869,6 +876,10 @@ local function stopGlow(frame)
 end
 
 local function HandleGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
+	if not IsSpellKnown(spellId) then
+		return
+	end
+
 	local shouldGlow = CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
 	for _, frame in pairs(GLOW_FRAMES[spellId]) do
 		if shouldGlow then
