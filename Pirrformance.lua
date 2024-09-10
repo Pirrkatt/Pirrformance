@@ -765,7 +765,10 @@ local function CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShield
 	-- Check Runes
 	local totalRunes = 0
 	for i = 1, 6 do
-		totalRunes = totalRunes + GetRuneCount(i)
+        local runeCount = GetRuneCount(i)
+        if runeCount then -- Fixes weird bug when loading between zones
+            totalRunes = totalRunes + runeCount
+        end
 	end
 	if totalRunes < runesRequired then
 		return false
@@ -866,5 +869,5 @@ function Pirrformance:UpdateSpellGlow()
 	HandleGlow(4, SPELL_GLOWS_IDS[4], 0, nil, 6, nil, nil, 2, nil)
 
 	-- Soul Reaper
-	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 40, nil, nil)
+	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 40, nil, true)
 end
