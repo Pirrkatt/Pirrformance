@@ -346,7 +346,7 @@ local options = {
 						},
 						spell1 = {
 							type = "toggle",
-							name = "|TInterface\\Icons\\Ability_DeathKnight_Marrowrend:24|t Marrowrend",
+							name = function() return Pirrformance:GetNameWithIconString("Marrowrend", "Ability_DeathKnight_Marrowrend", 22, true) end,
 							desc = "Helps with upkeeping at least 6 Bone Shield charges.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[1] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[1] = newValue end,
@@ -355,7 +355,7 @@ local options = {
 						},
 						spell2 = {
 							type = "toggle",
-							name = "|TInterface\\Icons\\Ability_DeathKnight_DeathsCaress:24|t Death's Caress",
+							name = function() return Pirrformance:GetNameWithIconString("Death's Caress", "Ability_DeathKnight_DeathsCaress", 22, true) end,
 							desc = "Helps with upkeeping at least 6 Bone Shield charges.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[2] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[2] = newValue end,
@@ -364,7 +364,7 @@ local options = {
 						},
 						spell3 = {
 							type = "toggle",
-							name = "|TInterface/Icons/Ability_FiegnDead:24|t Tombstone",
+							name = function() return Pirrformance:GetNameWithIconString("Tombstone", "Ability_FiegnDead", 22, true) end,
 							desc = "Triggers when Runic Power is 95 or below and at least 6 Bone Shield charges.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[3] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[3] = newValue end,
@@ -373,7 +373,7 @@ local options = {
 						},
 						spell4 = {
 							type = "toggle",
-							name = "|TInterface/Icons/Achievement_Boss_LordMarrowgar:24|t Bonestorm",
+							name = function() return Pirrformance:GetNameWithIconString("Bonestorm", "Achievement_Boss_LordMarrowgar", 22, true) end,
 							desc = "Triggers when at least 6 Bone Shield charges and more than 2 enemies in range.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[4] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[4] = newValue end,
@@ -382,7 +382,7 @@ local options = {
 						},
 						spell5 = {
 							type = "toggle",
-							name = "|TInterface/Icons/Ability_DeathKnight_SoulReaper:24|t Soul Reaper",
+							name = function() return Pirrformance:GetNameWithIconString("Soul Reaper", "Ability_DeathKnight_SoulReaper", 22, true) end,
 							desc = "Triggers when at least 1 rune and target has less than 40% health.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[5] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[5] = newValue end,
@@ -464,6 +464,24 @@ end
 
 function Pirrformance:SlashCommand(msg)
 	Settings.OpenToCategory(self.settingsCategoryId)
+end
+
+function Pirrformance:GetNameWithIconString(name, iconPath, size, cropped)
+	local str = ""
+	if iconPath then
+		str = str .. "|TInterface/Icons/" .. iconPath .. ":"
+		if size then
+			str = str .. size .. ":" .. size
+			if cropped then
+				str = str .. ":0:0:64:64:8:56:8:56"
+			end
+		else
+			str = str .. "0"
+		end
+	end
+
+	str = str .. "|t " .. name
+	return str
 end
 
 --------------------- AUTOMARK ---------------------
@@ -718,6 +736,7 @@ function Pirrformance:TestSound(info)
 end
 
 --------------------- SPELL GLOW ---------------------
+
 local defaultBars = {"Action", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft"}
 
 local function scanDefaultBars()
