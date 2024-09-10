@@ -718,24 +718,33 @@ function Pirrformance:TestSound(info)
 end
 
 --------------------- SPELL GLOW ---------------------
+local defaultBars = {"Action", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft"}
 
-local function scanDefaultBars(spellId)
-	local frames = {}
+local function scanDefaultBars()
+	local buttonMap = {}
 
-	local spellActionButtons = C_ActionBar.FindSpellActionButtons(spellId)
-	if spellActionButtons then
-		for _, slot in pairs(spellActionButtons) do
-			local button = _G["ActionButton" .. slot]
+	for _, barName in pairs(defaultBars) do
+		for i = 1, 12 do
+			local button = _G[barName .. "Button" .. i]
 			if button then
-				table.insert(frames, button)
+				local slot = button.action or 0
+				if slot and HasAction(slot) then
+					local actionType, spellId = GetActionInfo(slot)
+					if actionType == "spell" then
+						if not buttonMap[spellId] then
+							buttonMap[spellId] = {}
+						end
+						table.insert(buttonMap[spellId], button)
+		end
+	end
 			end
 		end
 	end
-	return frames
+	return buttonMap
 end
 
-local function scanElvUIBars(spellId)
-	local frames = {}
+local function scanElvUIBars()
+	local buttonMap = {}
 
 	for bar = 1, 15 do
 		for slotNum = 1, 12 do
@@ -743,19 +752,29 @@ local function scanElvUIBars(spellId)
 			if button then
 				local slot = button._state_action;
 				if slot and HasAction(slot) then
-					local actionType, id = GetActionInfo(slot)
-					if actionType == "spell" and spellId == id then
-						table.insert(frames, button)
-					end
+					local actionType, spellId = GetActionInfo(slot)
+					if actionType == "spell" then
+						if not buttonMap[spellId] then
+							buttonMap[spellId] = {}
+						end
+						table.insert(buttonMap[spellId], button)
 				end
 			end
 		end
 	end
-	return frames
+	end
+	return buttonMap
 end
 
 function Pirrformance:SetupGlowButtons()
 	GLOW_FRAMES = {}
+
+	local buttonMap = {}
+	if ElvUI then
+		buttonMap = scanElvUIBars()
+	else
+		buttonMap = scanDefaultBars()
+	end
 
 	for _, spellId in pairs(SPELL_GLOWS_IDS) do
 		if IsSpellKnown(spellId) then
@@ -765,12 +784,7 @@ function Pirrformance:SetupGlowButtons()
 
 			local glowFrame = CreateFrame("Frame")
 
-			local buttons = {}
-			if ElvUI then
-				buttons = scanElvUIBars(spellId)
-			else
-				buttons = scanDefaultBars(spellId)
-			end
+			local buttons = buttonMap[spellId] or {}
 
 			for _, button in pairs(buttons) do
 					glowFrame.SpellActivationAlert = CreateFrame("Frame", nil, button, "ActionBarButtonSpellActivationAlert");
