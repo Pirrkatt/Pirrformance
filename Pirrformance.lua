@@ -28,6 +28,9 @@ local defaults = {
 				[1] = {enabled = false, volume = 1},
 			}
 		},
+		tools = {
+			autoDelete = false,
+		}
 	},
 }
 
@@ -390,6 +393,29 @@ local options = {
 				},
 			},
 		},
+		toolsCategory = {
+			type = "group",
+			name = "Tools",
+			order = 7,
+			args = {
+				tools = {
+					name = "Tools",
+					type = "group",
+					inline = true,
+					order = 1,
+					args = {
+						autoDelete = {
+							type = "toggle",
+							name = "Auto Delete",
+							desc = "Automatically puts 'DELETE' into text field when attempting to delete an item.",
+							get = function() return STORAGE_GLOBAL.tools.autoDelete end,
+							set = function(_, newValue) STORAGE_GLOBAL.tools.autoDelete = newValue end,
+							order = 1,
+						},
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -416,6 +442,8 @@ function Pirrformance:OnInitialize() -- Called when the addon is loaded
 	end
 
 	_, PLAYER_CLASS = UnitClass("player")
+
+	self:HookAutoDelete()
 end
 
 function Pirrformance:OnEnable() -- Called when the addon is enabled
@@ -870,4 +898,25 @@ function Pirrformance:UpdateSpellGlow()
 
 	-- Soul Reaper
 	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 40, nil, true)
+end
+
+--------------------- TOOLS ---------------------
+
+-- Auto Delete
+function Pirrformance:HookAutoDelete()
+	hooksecurefunc(StaticPopupDialogs["DELETE_GOOD_ITEM"], "OnShow", function(s)
+		if not STORAGE_GLOBAL.tools.autoDelete then
+			return
+		end
+
+		s.editBox:SetText(DELETE_ITEM_CONFIRM_STRING)
+	end)
+
+	hooksecurefunc(StaticPopupDialogs["DELETE_GOOD_QUEST_ITEM"], "OnShow", function(s)
+		if not STORAGE_GLOBAL.tools.autoDelete then
+			return
+		end
+
+		s.editBox:SetText(DELETE_ITEM_CONFIRM_STRING)
+	end)
 end
