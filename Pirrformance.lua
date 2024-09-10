@@ -880,6 +880,10 @@ local function HandleGlow(dbIndex, spellId, runesRequired, missingBoneShieldChar
 		return
 	end
 
+	if not GLOW_FRAMES[spellId] then
+		return
+	end
+
 	local shouldGlow = CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShieldCharges, minBoneShieldCharges, maxRunicPower, healthThreshold, minNearbyCreatures, inRangeCheck)
 	for _, frame in pairs(GLOW_FRAMES[spellId]) do
 		if shouldGlow then
