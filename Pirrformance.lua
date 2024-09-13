@@ -2,6 +2,12 @@ local addonName, addon = ...
 
 Pirrformance = LibStub("AceAddon-3.0"):NewAddon("Pirrformance", "AceConsole-3.0", "AceEvent-3.0")
 
+local DisabledFeatures = {
+    AutoMarking = true,
+    RangeIndicator = true,
+    SpellGlow = true,
+}
+
 local defaults = {
 	char = {
 		autoMark = {
@@ -128,6 +134,7 @@ local options = {
 							desc = "Automatically mark pre-configured players.",
 							get = "IsAutoMarkEnabled",
 							set = "ToggleAutoMark",
+							disabled = function() return DisabledFeatures.AutoMarking end,
 							order = 1,
 						},
 						header = {
@@ -353,6 +360,7 @@ local options = {
 							desc = "Enable Spell Glow.",
 							get = "IsSpellGlowEnabled",
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellGlowEnabled = newValue end,
+							disabled = function() return DisabledFeatures.SpellGlow end,
 							order = 1,
 						},
 						header = {
@@ -434,6 +442,7 @@ local options = {
 							desc = "Shows approximate range to target in yards.",
 							get = function() return STORAGE_GLOBAL.tools.rangeIndicator end,
 							set = "ToggleRangeIndicator",
+							disabled = function() return DisabledFeatures.RangeIndicator end,
 							order = 2,
 						},
 					},
