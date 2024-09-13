@@ -1039,15 +1039,9 @@ function Pirrformance:HookAutoDelete()
 	end)
 end
 
--- Range Check
-local rangeFrame = CreateFrame("Frame", "RangeFrame", UIParent, "BackdropTemplate")
-
+-- Range Indicator
 function Pirrformance:SetupRangeFrame()
-	if STORAGE_GLOBAL.tools.rangeIndicator then
-		rangeFrame:Show()
-	else
-		rangeFrame:Hide()
-	end
+	local rangeFrame = CreateFrame("Frame", "RangeFrame", UIParent, "BackdropTemplate")
 
 	rangeFrame:SetSize(180, 36)
 	rangeFrame:SetPoint("CENTER", UIParent, "CENTER") -- Position at the center of the screen
@@ -1072,6 +1066,12 @@ function Pirrformance:SetupRangeFrame()
 
 	rangeFrame:SetMovable(true)
 	rangeFrame:EnableMouse(true)
+
+	if STORAGE_GLOBAL.tools.rangeIndicator then
+		rangeFrame:Show()
+	else
+		rangeFrame:Hide()
+	end
 
 	-- Make the frame draggable
 	rangeFrame:RegisterForDrag("LeftButton")
@@ -1117,6 +1117,8 @@ function Pirrformance:GetRangeToTarget()
 end
 
 function Pirrformance:ToggleRangeIndicator(info, value)
+	local rangeFrame = _G["RangeFrame"]
+
 	if not rangeFrame then
         self:Print("Error: rangeFrame is not initialized.")
         return
