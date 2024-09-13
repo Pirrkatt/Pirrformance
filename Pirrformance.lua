@@ -1056,7 +1056,8 @@ end
 
 function Pirrformance:StopAllGlowButtons()
 	for _, spellId in pairs(SPELL_GLOWS_IDS) do
-		for _, frame in pairs(GLOW_FRAMES[spellId]) do
+		local activeFrames = GLOW_FRAMES[spellId] or {}
+		for _, frame in pairs(activeFrames) do
 			stopGlow(frame)
 		end
 	end
