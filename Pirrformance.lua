@@ -970,7 +970,7 @@ local function stopGlow(frame)
 	end
 end
 
-function Pirrformance:StopAllGlow()
+function Pirrformance:StopAllGlowButtons()
 	for _, spellId in pairs(SPELL_GLOWS_IDS) do
 		for _, frame in pairs(GLOW_FRAMES[spellId]) do
 			stopGlow(frame)
