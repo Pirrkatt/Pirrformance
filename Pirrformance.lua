@@ -32,6 +32,7 @@ local defaults = {
 			customSoundsEnabled = false,
 			soundList = {
 				[1] = {enabled = false, volume = 1},
+				[2] = {enabled = false, volume = 1}, -- All of Jens Death sounds
 			}
 		},
 		tools = {
@@ -65,7 +66,11 @@ local MARKERS_MAP = {
 }
 
 local SOUND_FILES = {
-	[1] = {file = "BL-Hagge.ogg", channel = "SFX"}
+	[1] = {file = "BL-Hagge.ogg", channel = "SFX"},
+	[2] = {file = "Death-Jens1.ogg", channel = "SFX"},
+	[3] = {file = "Death-Jens2.ogg", channel = "SFX"},
+	[4] = {file = "Death-Jens3.ogg", channel = "SFX"},
+	[5] = {file = "Death-Jens4.ogg", channel = "SFX"},
 }
 
 local GLOW_FRAMES = {}
@@ -325,7 +330,7 @@ local options = {
 							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[1].volume = newValue end,
 							order = 4,
 						},
-						spaces = {
+						spaces1 = {
 							type = "description",
 							name = " ",
 							fontSize = "medium",
@@ -339,6 +344,40 @@ local options = {
 							width = 0.4,
 							order = 6,
 						},
+						sound2 = {
+							type = "toggle",
+							name = "Death - Jens",
+							descStyle = "none",
+							get = function() return STORAGE_GLOBAL.sounds.soundList[2].enabled end,
+							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[2].enabled = newValue end,
+							disabled = function() return not Pirrformance:IsCustomSoundsEnabled() end,
+							order = 7,
+						},
+						volumeSound2 = {
+							type = "range",
+							name = "Volume",
+							min = 1,
+							max = 5,
+							step = 1,
+							width = 0.8,
+							get = function() return STORAGE_GLOBAL.sounds.soundList[2].volume end,
+							set = function(_, newValue) STORAGE_GLOBAL.sounds.soundList[2].volume = newValue end,
+							order = 8,
+						},
+						spaces2 = {
+							type = "description",
+							name = " ",
+							fontSize = "medium",
+							width = 0.15,
+							order = 9,
+						},
+						-- testSound2 = {
+						-- 	type = "execute",
+						-- 	name = "Test",
+						-- 	func = "TestSound",
+						-- 	width = 0.4,
+						-- 	order = 10,
+						-- },
 					},
 				},
 			},
@@ -725,6 +764,7 @@ function Pirrformance:HaggeBL()
 	end
 
 	if not SOUND_FILES[haggeBL_index] then
+		self:Print("Error: Sound File does not exist.")
 		return
 	end
 
@@ -741,9 +781,44 @@ function Pirrformance:HaggeBL()
 	end
 end
 
+function Pirrformance:JensDeath()
+	local jensChars = {["Steroid"] = true, ["Jagclearar"] = true, ["Jensuz"] = true}
+
+	local _, subevent, _, _, _, _, _, playerGUID, playerName = CombatLogGetCurrentEventInfo()
+
+	if not self:IsCustomSoundsEnabled() then
+		return
+	end
+
+	if not STORAGE_GLOBAL.sounds.soundList[2] or not STORAGE_GLOBAL.sounds.soundList[2].enabled then -- Index 2 is a collection of all sound files (only enabled check)
+		return
+	end
+
+
+	if subevent == "UNIT_DIED" then
+		-- local inGroup = IsGUIDInGroup(playerGUID) -- Only apply if player is in the same party
+		if jensChars[playerName] then
+			local startIndex, endIndex = 2, 5 -- Indexes of sound files for this event in SOUND_FILES table
+			local randomFile = math.random(startIndex, endIndex)
+
+			if not SOUND_FILES[randomFile] then
+				self:Print("Error: Sound File does not exist.")
+				return
+			end
+
+			local soundFile = SOUND_FILES[randomFile].file
+			local soundChannel = SOUND_FILES[randomFile].channel
+			local soundVolume = STORAGE_GLOBAL.sounds.soundList[2].volume
+
+			PlaySound(soundFile, soundChannel, soundVolume)
+		end
+	end
+end
+
 function Pirrformance:COMBAT_LOG_EVENT_UNFILTERED()
 	self:HaggeBL()
 	self:UpdateSpellGlow()
+	self:JensDeath()
 end
 
 function Pirrformance:IsCustomSoundsEnabled(info)
