@@ -446,7 +446,7 @@ local options = {
 						spell5 = {
 							type = "toggle",
 							name = function() return Pirrformance:GetNameWithIconString("Soul Reaper", "Ability_DeathKnight_SoulReaper", 22, true) end,
-							desc = "Triggers when at least 1 rune and target has less than 40% health.",
+							desc = "Triggers when at least 1 rune and target has less than 35% health.",
 							get = function() return STORAGE_CHAR.spellGlow.spellList[5] end,
 							set = function(_, newValue) STORAGE_CHAR.spellGlow.spellList[5] = newValue end,
 							disabled = function() return not Pirrformance:IsSpellGlowEnabled() or PLAYER_CLASS ~= "DEATHKNIGHT" end,
@@ -782,7 +782,7 @@ function Pirrformance:HaggeBL()
 end
 
 function Pirrformance:JensDeath()
-	local jensChars = {["Steroid"] = true, ["Jagclearar"] = true, ["Jensuz"] = true}
+	local jensChars = {["Steroid"] = true, ["Jagclearar"] = true, ["Jensuz"] = true, ["Snoopdog"] = true}
 
 	local _, subevent, _, _, _, _, _, playerGUID, playerName = CombatLogGetCurrentEventInfo()
 
@@ -1010,7 +1010,7 @@ local function CheckSpellGlow(dbIndex, spellId, runesRequired, missingBoneShield
 		local health = UnitHealth("target")
 		local maxHealth = UnitHealthMax("target")
 		local percentHealth = (health / maxHealth) * 100
-		if percentHealth > healthThreshold then
+		if percentHealth >= healthThreshold then
 			return false
 		end
 	end
@@ -1100,7 +1100,7 @@ function Pirrformance:UpdateSpellGlow()
 	HandleGlow(4, SPELL_GLOWS_IDS[4], 0, nil, 6, nil, nil, 2, nil)
 
 	-- Soul Reaper
-	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 40, nil, true)
+	HandleGlow(5, SPELL_GLOWS_IDS[5], 1, nil, nil, nil, 35, nil, true)
 end
 
 --------------------- TOOLS ---------------------
